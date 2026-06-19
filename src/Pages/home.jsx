@@ -4,19 +4,36 @@ import Sucess from "../components/sucess";
 import NavBarH from "../components/navbarH";
 import NavbarV from "../components/navbarV";
 import { createClient } from "@supabase/supabase-js";
+import html2pdf from "html2pdf.js";
+
+import pdfMake from "pdfmake/build/pdfmake";
+import pdfFonts from "pdfmake/build/vfs_fonts";
+
+
+import { marked } from "marked";
+import htmlToPdfmake from "html-to-pdfmake";
+
+pdfMake.addVirtualFileSystem(pdfFonts);
 
 const Home = () => {
-    const [pdf, setPdf] = useState(null);
+    const [pdfs, setPdfs] = useState([]);
     const [showButton, setShowButton] = useState(false);
     const [responseData, setResponseData] = useState(null);
     const [showSucess, setShowSucess] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [dataHora, setDataHora] = useState(null);
     const supabaseUrl = "https://wqhqiwmwocvltseietdm.supabase.co";
     const supabaseKey = import.meta.env.VITE_API_KEY;
     const supabase = createClient(supabaseUrl, supabaseKey);
+    const contentRef = useRef();
+    
+    console.log(pdfFonts)
+    
 
     const inputRef = useRef(null);
-
+ 
+    /*
+    baixa texto em .txt
     const handleDownload = async (e) => {
         e.preventDefault();
         const { data, error } = await supabase.from("historicoPdfsAnalisados").select("*");
@@ -31,13 +48,38 @@ const Home = () => {
         a.click();
         URL.revokeObjectURL(url);
     };
+    */
+
+    const handleDownload = () => {
+        const html = marked.parse(responseData);
+
+        const pdfContent = htmlToPdfmake(html);
+
+        const docDefinition = {
+            content: pdfContent,
+            pageMargins: [40, 60, 40, 60],
+            defaultStyle: {
+                fontSize: 11,
+                lineHeight: 1.3,
+            },
+        };
+
+        pdfMake.createPdf(docDefinition)
+            .download("metallurg-x-analise.pdf");
+    };
+
+    const novaAnalise = () => {
+        setShowButton(false);
+        setResponseData(null);
+        setPdfs([]);
+    };
 
     const handleDrop = (e) => {
-        e.preventDefault();
-        const file = e.dataTransfer.files[0];
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files).filter((file) => file.type === "application/pdf");
 
-        if (file && file.type === "application/pdf") {
-            setPdf(file);
+        if (files.length > 0) {
+            setPdfs((prev) => [...prev, ...files]);
             setShowButton(true);
         }
     };
@@ -56,15 +98,18 @@ const Home = () => {
         try {
             const formData = new FormData();
 
-            formData.append("pdf", pdf);
+            pdfs.forEach((file) => {
+                formData.append("pdfs[]", file);
+            });
 
-            const response = await fetch("http://localhost:5678/webhook-test/teste", {
+            const response = await fetch("http://localhost:5678/webhook-test/v1Orcamento", {
                 method: "POST",
                 body: formData,
             });
 
             const data = await response.json();
             setResponseData(data.mensagem);
+            setDataHora(new Date());
 
             const [dados, error] = await supabase
                 .from("historicoPdfsAnalisados")
@@ -85,19 +130,20 @@ const Home = () => {
     };
 
     const handleFileChange = (event) => {
-        const arquivo = event.target.files[0];
-        setPdf(arquivo);
-        handleShowButton();
+        const arquivos = Array.from(event.target.files).filter((file) => file.type === "application/pdf");
+        if (arquivos.length > 0) {
+            setPdfs((prev) => [...prev, ...arquivos]);
+            setShowButton(true);
+        }
     };
 
     const handleShowButton = () => {
-        if (!(inputRef == null)) setShowButton(true);
-        else setShowButton(false);
+        setShowButton(pdfs.length > 0);
     };
 
     return (
         <div className="bg-metallurg-navy text-metallurg-text font-sans flex flex-col h-screen">
-            <NavBarH />
+            <NavBarH onNovaAnalise={novaAnalise} />
 
             <div className="flex flex-1 overflow-hidden">
                 <NavbarV />
@@ -133,7 +179,7 @@ const Home = () => {
                             >
                                 <section className="col-span-12 lg:col-span-12 space-y-gutter">
                                     <div
-                                        className={`relative group h-100 bg-surface-container border-2 border-dashed border-outline-variant rounded-xl transition-all duration-300 flex flex-col items-center justify-center p-xl overflow-hidden         ${
+                                        className={`relative group h-110 bg-surface-container border-2 border-dashed border-outline-variant rounded-xl transition-all duration-300 flex flex-col items-center justify-center p-xl overflow-hidden         ${
                                             isDragging
                                                 ? "border-primary bg-primary-container/10"
                                                 : "border-outline-variant hover:border-primary-container"
@@ -157,6 +203,7 @@ const Home = () => {
                                                     ref={inputRef}
                                                     type="file"
                                                     accept=".pdf"
+                                                    multiple
                                                     style={{ display: "none" }}
                                                     onChange={handleFileChange}
                                                 />
@@ -164,7 +211,7 @@ const Home = () => {
                                                     className={`bg-primary-container text-on-primary font-bold py-md px-xl rounded-lg shadow-lg transition-all active:scale-95 hover:shadow-primary-container/20 ${showButton ? "hidden" : ""}`}
                                                     onClick={selecionarArquivo}
                                                 >
-                                                    Selecionar Arquivo
+                                                    Selecionar Arquivos
                                                 </button>
                                                 <button
                                                     className={`bg-primary-container text-on-primary font-bold py-md px-xl rounded-lg shadow-lg hover:shadow-primary-container/20 transition-all active:scale-95 ${showButton ? "" : "hidden"}`}
@@ -172,7 +219,16 @@ const Home = () => {
                                                 >
                                                     Enviar para analise
                                                 </button>
-                                                {pdf && <p>{pdf.name}</p>}
+                                                {pdfs.length > 0 && (
+                                                    <div className="mt-md text-left">
+                                                        <p className="font-semibold">Arquivos selecionados:</p>
+                                                        <ul className="list-disc list-inside text-sm text-on-surface-variant">
+                                                            {pdfs.map((file, index) => (
+                                                                <li key={index}>{file.name}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="absolute bottom-[-50%] right-[-5%] opacity-5 group-hover:opacity-10 transition-opacity text-[380px]">
@@ -190,7 +246,7 @@ const Home = () => {
                             <div class="flex justify-between items-end mb-8">
                                 <div>
                                     <h2 class="text-2xl font-bold text-white mb-1">Resultados da Análise</h2>
-                                    <p class="text-sm text-gray-400">Processado em: 24/10/2023 - 14:32</p>
+                                    <p class="text-sm text-gray-400">Processado em: {dataHora ? dataHora.toLocaleString() : "Carregando..."}</p>
                                 </div>
                                 <div class="flex gap-3">
                                     <button
@@ -228,15 +284,59 @@ const Home = () => {
                                         <span className="text-xs font-bold text-green-500 tracking-widest uppercase">Validado</span>
                                     </div>
                                 </div>
-                                <div className={`flex-1 p-md technical-scroll bg-metallurg-navy font-mono leading-relaxed  rounded-b-xl`}>
-                                    <div className={`prose max-w-none`}>
-                                        <ReactMarkdown>{responseData}</ReactMarkdown>
+                                <div className={`flex-1 p-md technical-scroll bg-metallurg-navy leading-relaxed  rounded-b-xl`}>
+                                    <div ref={contentRef}>
+                                        <ReactMarkdown 
+                                            components={{
+                                                h1: ({ children }) => (
+                                                    <h1 className="font-inter text-3xl text-primary-container font-bold mb-6 border-b border-gray-700 pb-2 ">
+                                                        {children}
+                                                    </h1>
+                                                ),
+
+                                                h2: ({ children }) => (
+                                                    <h2 className="font-inter text-2xl text-primary-container font-semibold mt-8 mb-4">
+                                                        {children}
+                                                    </h2>
+                                                ),
+
+                                                h3: ({ children }) => (
+                                                    <h3 className="font-inter text-xl text-primary-container font-semibold mt-6 mb-3">
+                                                        {children}
+                                                    </h3>
+                                                ),
+
+                                                p: ({ children }) => (
+                                                    <p className="font-inter mb-4 leading-7 text-gray-200">
+                                                        {children}
+                                                    </p>
+                                                ),
+
+                                                ul: ({ children }) => (
+                                                    <ul className="font-inter list-disc pl-6 mb-4 space-y-2">
+                                                        {children}
+                                                    </ul>
+                                                ),
+
+                                                li: ({ children }) => (
+                                                    <li className="font-inter text-gray-200">
+                                                        {children}
+                                                    </li>
+                                                ),
+
+                                                strong: ({ children }) => (
+                                                    <strong className="font-bold text-white">
+                                                        {children}
+                                                    </strong>
+                                                ),
+                                            }}>
+                                                    {responseData}
+                                        </ReactMarkdown>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div></div>
                     <Sucess show={showSucess} onClose={() => setShowSucess(false)} />
                 </main>
             </div>

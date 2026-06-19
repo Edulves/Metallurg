@@ -12,6 +12,12 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
     "@tailwindcss/vite": "^4.3.0",
+    "html-to-pdfmake": "^2.5.33",
+    "html2canvas": "^1.4.1",
+    "html2pdf.js": "^0.14.0",
+    "jspdf": "^4.2.1",
+    "marked": "^18.0.5",
+    "pdfmake": "^0.3.11",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-markdown": "^10.1.0",

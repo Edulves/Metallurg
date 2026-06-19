@@ -11,7 +11,7 @@ const NavbarV = () => {
                             stroke-width="2"
                         ></path>
                     </svg>
-                    Dashboard
+                    Orçamentos
                 </a>
                 <a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-metallurg-surface transition-colors" href="#">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -39,7 +39,7 @@ const NavbarV = () => {
                         <span class="text-[10px] text-gray-400">Status da API</span>
                         <span class="w-2 h-2 rounded-full bg-green-500"></span>
                     </div>
-                    <div class="text-[11px] text-gray-300">V. 2.4.0-Stable</div>
+                    <div class="text-[11px] text-gray-300">V. 0.0.0-FirstTry</div>
                 </div>
             </div>
         </aside>
