@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import Sucess from "../components/sucess";
 import NavBarH from "../components/navbarH";
 import NavbarV from "../components/navbarV";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "../../supabase";
 
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
@@ -20,12 +20,17 @@ const Home = () => {
     const [showSucess, setShowSucess] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [dataHora, setDataHora] = useState(null);
-    const supabaseUrl = "https://wqhqiwmwocvltseietdm.supabase.co";
-    const supabaseKey = import.meta.env.VITE_API_KEY;
-    const supabase = createClient(supabaseUrl, supabaseKey);
     const contentRef = useRef();
 
-    console.log(pdfFonts);
+    const handleSession = async () => {
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
+
+        console.log(user);
+    };
+
+    handleSession();
 
     const inputRef = useRef(null);
 
@@ -76,11 +81,13 @@ const Home = () => {
         try {
             const formData = new FormData();
 
+            if (pdfs.length < 2) throw new Error("São necessarios pelo menos 2 PDFs para análise. :c");
+
             pdfs.forEach((file) => {
                 formData.append("pdfs[]", file);
             });
 
-            const response = await fetch("http://localhost:5678/webhook-test/v1Orcamento", {
+            const response = await fetch("http://localhost:5678/webhook-test/v2Orcamento", {
                 method: "POST",
                 body: formData,
             });
@@ -96,6 +103,7 @@ const Home = () => {
 
             setShowSucess(true);
         } catch (error) {
+            alert(`Erro: ${error}`);
             console.error("Erro:", error);
         }
     };

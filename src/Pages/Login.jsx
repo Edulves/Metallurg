@@ -1,4 +1,29 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../../supabase";
+
 const Login = () => {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const navigate = useNavigate();
+
+    const HandleLogin = async (e) => {
+        e.preventDefault();
+        try {
+            let { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (error) throw new Error(error.message);
+
+            navigate("/home");
+            console.log(data);
+        } catch (error) {
+            alert(error);
+        }
+    };
+
     return (
         <div className="bg-metallurg-navy text-on-surface min-h-screen">
             <div className="flex min-h-screen">
@@ -8,7 +33,7 @@ const Login = () => {
                             <h2 className="text-[32px] text-on-surface mb-xs leading-10 tracking-[-0.01em] font-semibold">Acesso ao Portal</h2>
                             <p className="text-on-surface-variant">Entre com suas credenciais para gerenciar especificações técnicas.</p>
                         </header>
-                        <form className="space-y-md">
+                        <form onSubmit={HandleLogin} className="space-y-md">
                             <div className="space-y-xs">
                                 <label className="text-xs font-semibold leading-4 tracking-wider  block">E-MAIL CORPORATIVO</label>
                                 <div className="relative group">
@@ -21,6 +46,8 @@ const Login = () => {
                                         className="w-full bg-surface-container-low border border-outline-variant text-on-surface py-md pl-xl pr-md rounded focus:ring-2 focus:ring-metallurg-orange  transition-all placeholder:text-surface-variant focus:outline-none"
                                         placeholder="nome@metallurg-x.com"
                                         type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -40,7 +67,9 @@ const Login = () => {
                                     <input
                                         className="w-full bg-surface-container-low border border-outline-variant text-on-surface py-md pl-xl pr-md rounded focus:ring-2 focus:ring-metallurg-orange  transition-all placeholder:text-surface-variant focus:outline-none"
                                         placeholder="••••••••"
-                                        type="email"
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
                                     />
                                 </div>
                             </div>
